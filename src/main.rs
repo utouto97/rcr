@@ -24,12 +24,18 @@ fn tokenize(s: &str) -> Vec<Token> {
             }
             ' ' | '\r' | '\n' | '\t' => {}
             _ => {
+                tokenize_error(s, s.len() - chars.count() - 1);
                 eprintln!("不正な文字です: {}", c);
                 process::exit(1);
             }
         }
     }
     tokens
+}
+
+fn tokenize_error(s: &str, pos: usize) {
+    println!("{}", s);
+    println!("{}", " ".repeat(pos) + "^");
 }
 
 fn main() {
