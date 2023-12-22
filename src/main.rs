@@ -13,7 +13,7 @@ fn tokenize(s: &str) -> Vec<Token> {
     let mut chars = s.chars().peekable();
     while let Some(c) = chars.next() {
         match c {
-            '+' | '-' => {
+            '+' | '-' | '*' | '/' => {
                 tokens.push(Token::Operator(c.to_string()));
             }
             '0'..='9' => {
@@ -159,6 +159,63 @@ impl Parser {
     }
 }
 
+fn generate(node: Box<Node>) {
+    match node.value {
+        NodeType::NUM(n) => {
+            generate_li("t0".to_string(), n);
+            generate_push("t0".to_string());
+            return;
+        }
+        _ => {}
+    }
+
+    for child in node.children {
+        generate(child);
+    }
+
+    match node.value {
+        NodeType::ADD => {
+            generate_pop("t0".to_string());
+            generate_pop("t1".to_string());
+            println!("  add t2, t1, t0");
+            generate_push("t2".to_string());
+        }
+        NodeType::SUB => {
+            generate_pop("t0".to_string());
+            generate_pop("t1".to_string());
+            println!("  sub t2, t1, t0");
+            generate_push("t2".to_string());
+        }
+        NodeType::MUL => {
+            generate_pop("t0".to_string());
+            generate_pop("t1".to_string());
+            println!("  mul t2, t1, t0");
+            generate_push("t2".to_string());
+        }
+        NodeType::DIV => {
+            generate_pop("t0".to_string());
+            generate_pop("t1".to_string());
+            println!("  div t2, t1, t0");
+            generate_push("t2".to_string());
+        }
+        _ => {}
+    }
+}
+
+fn generate_push(register: String) {
+    println!("  addi sp, sp, -4");
+    println!("  sw {}, 0(sp)", register);
+}
+
+fn generate_pop(register: String) {
+    println!("  lw {}, 0(sp)", register);
+    println!("  addi sp, sp, 4");
+}
+
+fn generate_li(register: String, n: i64) {
+    println!("  addi {}, zero, {}", register, n);
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
@@ -171,54 +228,16 @@ fn main() {
         eprintln!("式が空です");
         process::exit(1);
     }
-    match tokens[0] {
-        Token::Number(n) => {
-            println!(".globl main");
-            println!("main:");
-            println!("  addi a0, zero, {}", n);
-        }
-        _ => {
-            eprintln!("式の最初は数値ではありません");
-            process::exit(1);
-        }
-    }
+    let mut parser = Parser::new(tokens);
+    let parsed = parser.parse_expr();
 
-    for i in 1..tokens.len() {
-        let token = &tokens[i];
-        match token {
-            Token::Operator(op) => {
-                if tokens.len() <= i + 1 {
-                    eprintln!("演算子の後に式がありません");
-                    process::exit(1);
-                }
+    // println!("{:?}", parsed);
 
-                let next_token = &tokens[i + 1];
-                match next_token {
-                    Token::Operator(_) => {
-                        eprintln!("演算子の後に演算子があります");
-                        process::exit(1);
-                    }
-                    Token::Number(n) => {
-                        if op == "+" {
-                            println!("  addi a0, a0, {}", n);
-                        } else if op == "-" {
-                            println!("  addi a0, a0, -{}", n);
-                        } else {
-                            eprintln!("不正な演算子です: {}", op);
-                            process::exit(1);
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            Token::Number(_n) => {}
-            _ => {}
-        }
-    }
+    println!(".globl main");
+    println!("main:");
+
+    generate(parsed);
+    generate_pop("a0".to_string());
 
     println!("  ret");
-
-    println!("{:?}", tokens);
-    let mut parser = Parser::new(tokens);
-    println!("{:?}", parser.parse_expr());
 }
