@@ -2,7 +2,7 @@ use std::env;
 use std::process;
 
 mod tokenizer;
-use tokenizer::tokenize;
+use tokenizer::Tokenizer;
 
 mod parser;
 use parser::Parser;
@@ -17,14 +17,13 @@ fn main() {
         process::exit(1);
     }
 
-    let tokens = tokenize(&args[1]);
+    let tokens = Tokenizer::new(args[1].clone()).tokenize();
     // println!("{:?}", tokens);
     if tokens.len() == 0 {
         eprintln!("式が空です");
         process::exit(1);
     }
-    let mut parser = Parser::new(tokens);
-    let parsed = parser.parse_expr();
+    let parsed = Parser::new(tokens).parse_expr();
     // println!("{:?}", parsed);
 
     println!(".globl main");
