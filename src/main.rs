@@ -5,6 +5,8 @@ use std::process;
 enum Token {
     Number(i64),
     Operator(String),
+    LeftParen,
+    RightParen,
     EOF,
 }
 
@@ -13,9 +15,7 @@ fn tokenize(s: &str) -> Vec<Token> {
     let mut chars = s.chars().peekable();
     while let Some(c) = chars.next() {
         match c {
-            '+' | '-' | '*' | '/' => {
-                tokens.push(Token::Operator(c.to_string()));
-            }
+            '+' | '-' | '*' | '/' => tokens.push(Token::Operator(c.to_string())),
             '0'..='9' => {
                 let mut num = c.to_digit(10).unwrap() as i64;
                 while let Some('0'..='9') = chars.peek() {
@@ -23,6 +23,8 @@ fn tokenize(s: &str) -> Vec<Token> {
                 }
                 tokens.push(Token::Number(num));
             }
+            '(' => tokens.push(Token::LeftParen),
+            ')' => tokens.push(Token::RightParen),
             ' ' | '\r' | '\n' | '\t' => {}
             _ => {
                 tokenize_error(s, s.len() - chars.count() - 1);
@@ -122,7 +124,6 @@ impl Parser {
 
     fn parse_mul(&mut self) -> Box<Node> {
         let mut root = self.parse_primary();
-        self.next();
 
         loop {
             match self.token() {
@@ -150,7 +151,24 @@ impl Parser {
 
     fn parse_primary(&mut self) -> Box<Node> {
         match self.token() {
-            Token::Number(n) => Node::new(NodeType::NUM(*n)),
+            Token::Number(n) => {
+                let n = Node::new(NodeType::NUM(*n));
+                self.next();
+                n
+            }
+            Token::LeftParen => {
+                self.next();
+                let n = self.parse_expr();
+                match *self.token() {
+                    Token::RightParen => {}
+                    _ => {
+                        eprintln!("開きカッコに対応する閉じカッコがありません");
+                        process::exit(1);
+                    }
+                }
+                self.next();
+                n
+            }
             _ => {
                 eprintln!("数値ではありません");
                 process::exit(1);
@@ -224,13 +242,13 @@ fn main() {
     }
 
     let tokens = tokenize(&args[1]);
+    // println!("{:?}", tokens);
     if tokens.len() == 0 {
         eprintln!("式が空です");
         process::exit(1);
     }
     let mut parser = Parser::new(tokens);
     let parsed = parser.parse_expr();
-
     // println!("{:?}", parsed);
 
     println!(".globl main");
