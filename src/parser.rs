@@ -83,7 +83,7 @@ impl Parser {
     }
 
     fn parse_mul(&mut self) -> Box<Node> {
-        let mut root = self.parse_primary();
+        let mut root = self.parse_unary();
 
         loop {
             match self.token() {
@@ -92,13 +92,13 @@ impl Parser {
                         self.next();
                         root = Node::new(NodeType::MUL)
                             .add_child(root)
-                            .add_child(self.parse_primary())
+                            .add_child(self.parse_unary())
                     }
                     "/" => {
                         self.next();
                         root = Node::new(NodeType::DIV)
                             .add_child(root)
-                            .add_child(self.parse_primary())
+                            .add_child(self.parse_unary())
                     }
                     _ => break,
                 },
@@ -107,6 +107,29 @@ impl Parser {
         }
 
         root
+    }
+
+    fn parse_unary(&mut self) -> Box<Node> {
+        match self.token() {
+            Token::Operator(op) => match op.as_str() {
+                "+" => {
+                    self.next();
+                    self.parse_primary()
+                }
+                "-" => {
+                    self.next();
+                    Node::new(NodeType::SUB)
+                        .add_child(Node::new(NodeType::NUM(0)))
+                        .add_child(self.parse_primary())
+                }
+                _ => {
+                    return self.parse_primary();
+                }
+            }
+            _ => {
+                return self.parse_primary();
+            }
+        }
     }
 
     fn parse_primary(&mut self) -> Box<Node> {
