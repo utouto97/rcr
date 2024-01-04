@@ -1,6 +1,6 @@
 use crate::parser::{Node, NodeType};
 
-pub fn generate(node: Box<Node>) {
+pub fn generate(node: Box<Node>, name: String) {
     match node.value {
         NodeType::NUM(n) => {
             generate_li("t0".to_string(), n);
@@ -10,8 +10,8 @@ pub fn generate(node: Box<Node>) {
         _ => {}
     }
 
-    for child in node.children {
-        generate(child);
+    for i in 0..node.children.len() {
+        generate(node.children[i].clone(), format!("{}_{}", name, i));
     }
 
     match node.value {
@@ -37,6 +37,46 @@ pub fn generate(node: Box<Node>) {
             generate_pop("t0".to_string());
             generate_pop("t1".to_string());
             println!("  div t2, t1, t0");
+            generate_push("t2".to_string());
+        }
+        NodeType::LT => {
+            generate_pop("t0".to_string());
+            generate_pop("t1".to_string());
+            println!("  slt t2, t1, t0");
+            generate_push("t2".to_string());
+        }
+        NodeType::LTE => {
+            generate_pop("t0".to_string());
+            generate_pop("t1".to_string());
+            println!("  slt t2, t0, t1");
+            println!("  beq t2, zero, L_SET_{}", name);
+            println!("  addi t2, zero, 0");
+            println!("  j L_FIN_{}", name);
+            println!("L_SET_{}:", name);
+            println!("  addi t2, zero, 1");
+            println!("L_FIN_{}:", name);
+            generate_push("t2".to_string());
+        }
+        NodeType::EQ => {
+            generate_pop("t0".to_string());
+            generate_pop("t1".to_string());
+            println!("  beq t0, t1, L_SET_{}", name);
+            println!("  addi t2, zero, 0");
+            println!("  j L_FIN_{}", name);
+            println!("L_SET_{}:", name);
+            println!("  addi t2, zero, 1");
+            println!("L_FIN_{}:", name);
+            generate_push("t2".to_string());
+        }
+        NodeType::NEQ => {
+            generate_pop("t0".to_string());
+            generate_pop("t1".to_string());
+            println!("  bne t0, t1, L_SET_{}", name);
+            println!("  addi t2, zero, 0");
+            println!("  j L_FIN_{}", name);
+            println!("L_SET_{}:", name);
+            println!("  addi t2, zero, 1");
+            println!("L_FIN_{}:", name);
             generate_push("t2".to_string());
         }
         _ => {}

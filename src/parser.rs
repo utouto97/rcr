@@ -9,6 +9,10 @@ pub enum NodeType {
     MUL,
     DIV,
     NUM(i64),
+    LT,
+    LTE,
+    EQ,
+    NEQ,
 }
 
 #[derive(Clone, Debug)]
@@ -56,6 +60,76 @@ impl Parser {
     }
 
     pub fn parse_expr(&mut self) -> Box<Node> {
+        self.parse_equality()
+    }
+
+    pub fn parse_equality(&mut self) -> Box<Node> {
+        let mut root = self.parse_relational();
+
+        loop {
+            match self.token() {
+            Token::Operator(op) => match op.as_str() {
+                "==" => {
+                    self.next();
+                    root = Node::new(NodeType::EQ)
+                        .add_child(root)
+                        .add_child(self.parse_relational())
+                }
+                "!=" => {
+                    self.next();
+                    root = Node::new(NodeType::NEQ)
+                        .add_child(root)
+                        .add_child(self.parse_relational())
+                }
+                _ => break,
+            },
+            _ => break,
+            }
+        }
+
+        root
+    }
+
+    pub fn parse_relational(&mut self) -> Box<Node> {
+        let mut root = self.parse_add();
+
+        loop {
+            match self.token() {
+                Token::Operator(op) => match op.as_str() {
+                    "<" => {
+                        self.next();
+                        root = Node::new(NodeType::LT)
+                            .add_child(root)
+                            .add_child(self.parse_add())
+                    }
+                    "<=" => {
+                        self.next();
+                        root = Node::new(NodeType::LTE)
+                            .add_child(root)
+                            .add_child(self.parse_add())
+                    }
+                    ">" => {
+                        self.next();
+                        root = Node::new(NodeType::LT)
+                            .add_child(self.parse_add())
+                            .add_child(root)
+                    }
+                    ">=" => {
+                        self.next();
+                        root = Node::new(NodeType::LTE)
+                            .add_child(self.parse_add())
+                            .add_child(root)
+                    }
+                    _ => break,
+                },
+                _ => break,
+            }
+        }
+
+        root
+    }
+
+    pub fn parse_add(&mut self) -> Box<Node> {
         let mut root = self.parse_mul();
 
         loop {

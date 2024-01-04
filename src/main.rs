@@ -29,7 +29,7 @@ fn main() {
     println!(".globl main");
     println!("main:");
 
-    generate(parsed);
+    generate(parsed, "0".to_string());
     generate_pop("a0".to_string());
 
     println!("  ret");

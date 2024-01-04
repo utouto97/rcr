@@ -24,6 +24,56 @@ impl Tokenizer {
         while let Some(c) = chars.next() {
             match c {
                 '+' | '-' | '*' | '/' => tokens.push(Token::Operator(c.to_string())),
+                '<' => {
+                    match chars.peek() {
+                        Some('=') => {
+                            chars.next();
+                            tokens.push(Token::Operator("<=".to_string()));
+                        }
+                        _ => {
+                            tokens.push(Token::Operator("<".to_string()));
+                        }
+                    }
+                }
+                '>' => {
+                    match chars.peek() {
+                        Some('=') => {
+                            chars.next();
+                            tokens.push(Token::Operator(">=".to_string()));
+                        }
+                        _ => {
+                            tokens.push(Token::Operator(">".to_string()));
+                        }
+                    }
+                }
+                '=' => {
+                    match chars.peek() {
+                        Some('=') => {
+                            chars.next();
+                            tokens.push(Token::Operator("==".to_string()));
+                        }
+                        _ => {
+                            let pos = self.s.len() - chars.count() - 1;
+                            self.tokenize_error(pos);
+                            eprintln!("不正な文字です: {}", c);
+                            process::exit(1);
+                        }
+                    }
+                }
+                '!' => {
+                    match chars.peek() {
+                        Some('=') => {
+                            chars.next();
+                            tokens.push(Token::Operator("!=".to_string()));
+                        }
+                        _ => {
+                            let pos = self.s.len() - chars.count() - 1;
+                            self.tokenize_error(pos);
+                            eprintln!("不正な文字です: {}", c);
+                            process::exit(1);
+                        }
+                    }
+                }
                 '0'..='9' => {
                     let mut num = c.to_digit(10).unwrap() as i64;
                     while let Some('0'..='9') = chars.peek() {
