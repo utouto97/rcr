@@ -13,6 +13,8 @@ pub enum NodeType {
     LTE,
     EQ,
     NEQ,
+    ASSIGN,
+    LVAR(String), // local variable
 }
 
 #[derive(Clone, Debug)]
@@ -59,8 +61,54 @@ impl Parser {
         self.pos += 1;
     }
 
+    pub fn parse_program(&mut self) -> Vec<Box<Node>> {
+        let mut nodes = Vec::new();
+
+        loop {
+            match self.token() {
+                Token::EOF => {
+                    break;
+                }
+                _ => {
+                    nodes.push(self.parse_expr());
+                    match *self.token() {
+                        Token::EOF => {}
+                        Token::SEMICOLON => {
+                            self.next();
+                        }
+                        _ => {
+                            eprintln!("セミコロンがありません");
+                            process::exit(1);
+                        }
+                    }
+                }
+            }
+        }
+
+        nodes
+    }
+
     pub fn parse_expr(&mut self) -> Box<Node> {
-        self.parse_equality()
+        self.parse_assign()
+    }
+
+    pub fn parse_assign(&mut self) -> Box<Node> {
+        let mut root = self.parse_equality();
+
+        match self.token() {
+            Token::Operator(op) => match op.as_str() {
+                "=" => {
+                    self.next();
+                    root = Node::new(NodeType::ASSIGN)
+                        .add_child(root)
+                        .add_child(self.parse_assign())
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+
+        root
     }
 
     pub fn parse_equality(&mut self) -> Box<Node> {
@@ -68,22 +116,22 @@ impl Parser {
 
         loop {
             match self.token() {
-            Token::Operator(op) => match op.as_str() {
-                "==" => {
-                    self.next();
-                    root = Node::new(NodeType::EQ)
-                        .add_child(root)
-                        .add_child(self.parse_relational())
-                }
-                "!=" => {
-                    self.next();
-                    root = Node::new(NodeType::NEQ)
-                        .add_child(root)
-                        .add_child(self.parse_relational())
-                }
+                Token::Operator(op) => match op.as_str() {
+                    "==" => {
+                        self.next();
+                        root = Node::new(NodeType::EQ)
+                            .add_child(root)
+                            .add_child(self.parse_relational())
+                    }
+                    "!=" => {
+                        self.next();
+                        root = Node::new(NodeType::NEQ)
+                            .add_child(root)
+                            .add_child(self.parse_relational())
+                    }
+                    _ => break,
+                },
                 _ => break,
-            },
-            _ => break,
             }
         }
 
@@ -199,7 +247,7 @@ impl Parser {
                 _ => {
                     return self.parse_primary();
                 }
-            }
+            },
             _ => {
                 return self.parse_primary();
             }
@@ -210,6 +258,11 @@ impl Parser {
         match self.token() {
             Token::Number(n) => {
                 let n = Node::new(NodeType::NUM(*n));
+                self.next();
+                n
+            }
+            Token::Ident(s) => {
+                let n = Node::new(NodeType::LVAR(s.clone()));
                 self.next();
                 n
             }

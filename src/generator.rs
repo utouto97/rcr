@@ -1,9 +1,28 @@
 use crate::parser::{Node, NodeType};
+use std::process;
 
 pub fn generate(node: Box<Node>, name: String) {
+    // eprintln!("{:?}", node);
     match node.value {
         NodeType::NUM(n) => {
             generate_li("t0".to_string(), n);
+            generate_push("t0".to_string());
+            return;
+        }
+        NodeType::LVAR(_) => {
+            generate_lvar(node);
+            generate_pop("t0".to_string());
+            println!("  lw t1, 0(t0)");
+            generate_push("t1".to_string());
+            return;
+        }
+        NodeType::ASSIGN => {
+            generate_lvar(node.children[0].clone());
+            generate(node.children[1].clone(), format!("{}_1", name));
+
+            generate_pop("t0".to_string());
+            generate_pop("t1".to_string());
+            println!("  sw t0, 0(t1)");
             generate_push("t0".to_string());
             return;
         }
@@ -83,7 +102,7 @@ pub fn generate(node: Box<Node>, name: String) {
     }
 }
 
-fn generate_push(register: String) {
+pub fn generate_push(register: String) {
     println!("  addi sp, sp, -4");
     println!("  sw {}, 0(sp)", register);
 }
@@ -95,4 +114,31 @@ pub fn generate_pop(register: String) {
 
 fn generate_li(register: String, n: i64) {
     println!("  addi {}, zero, {}", register, n);
+}
+
+fn generate_lvar(node: Box<Node>) {
+    match node.value {
+        NodeType::LVAR(name) => {
+            println!("  addi t0, fp, {}", lvar_offset(name));
+            generate_push("t0".to_string());
+        }
+        _ => {
+            eprintln!("代入の左辺値が変数ではありません");
+            process::exit(1);
+        }
+    }
+}
+
+fn lvar_offset(name: String) -> i64 {
+    match name.chars().nth(0).unwrap() {
+        'a'..='z' => {
+            let c = name.chars().nth(0).unwrap();
+            let n = c as i64 - 'a' as i64;
+            -4 * n
+        }
+        _ => {
+            eprintln!("不正な変数名です");
+            process::exit(1);
+        }
+    }
 }

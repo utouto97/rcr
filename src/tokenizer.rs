@@ -6,6 +6,8 @@ pub enum Token {
     Operator(String),
     LeftParen,
     RightParen,
+    Ident(String),
+    SEMICOLON,
     EOF,
 }
 
@@ -24,56 +26,45 @@ impl Tokenizer {
         while let Some(c) = chars.next() {
             match c {
                 '+' | '-' | '*' | '/' => tokens.push(Token::Operator(c.to_string())),
-                '<' => {
-                    match chars.peek() {
-                        Some('=') => {
-                            chars.next();
-                            tokens.push(Token::Operator("<=".to_string()));
-                        }
-                        _ => {
-                            tokens.push(Token::Operator("<".to_string()));
-                        }
+                '<' => match chars.peek() {
+                    Some('=') => {
+                        chars.next();
+                        tokens.push(Token::Operator("<=".to_string()));
                     }
-                }
-                '>' => {
-                    match chars.peek() {
-                        Some('=') => {
-                            chars.next();
-                            tokens.push(Token::Operator(">=".to_string()));
-                        }
-                        _ => {
-                            tokens.push(Token::Operator(">".to_string()));
-                        }
+                    _ => {
+                        tokens.push(Token::Operator("<".to_string()));
                     }
-                }
-                '=' => {
-                    match chars.peek() {
-                        Some('=') => {
-                            chars.next();
-                            tokens.push(Token::Operator("==".to_string()));
-                        }
-                        _ => {
-                            let pos = self.s.len() - chars.count() - 1;
-                            self.tokenize_error(pos);
-                            eprintln!("不正な文字です: {}", c);
-                            process::exit(1);
-                        }
+                },
+                '>' => match chars.peek() {
+                    Some('=') => {
+                        chars.next();
+                        tokens.push(Token::Operator(">=".to_string()));
                     }
-                }
-                '!' => {
-                    match chars.peek() {
-                        Some('=') => {
-                            chars.next();
-                            tokens.push(Token::Operator("!=".to_string()));
-                        }
-                        _ => {
-                            let pos = self.s.len() - chars.count() - 1;
-                            self.tokenize_error(pos);
-                            eprintln!("不正な文字です: {}", c);
-                            process::exit(1);
-                        }
+                    _ => {
+                        tokens.push(Token::Operator(">".to_string()));
                     }
-                }
+                },
+                '=' => match chars.peek() {
+                    Some('=') => {
+                        chars.next();
+                        tokens.push(Token::Operator("==".to_string()));
+                    }
+                    _ => {
+                        tokens.push(Token::Operator("=".to_string()));
+                    }
+                },
+                '!' => match chars.peek() {
+                    Some('=') => {
+                        chars.next();
+                        tokens.push(Token::Operator("!=".to_string()));
+                    }
+                    _ => {
+                        let pos = self.s.len() - chars.count() - 1;
+                        self.tokenize_error(pos);
+                        eprintln!("不正な文字です: {}", c);
+                        process::exit(1);
+                    }
+                },
                 '0'..='9' => {
                     let mut num = c.to_digit(10).unwrap() as i64;
                     while let Some('0'..='9') = chars.peek() {
@@ -81,8 +72,12 @@ impl Tokenizer {
                     }
                     tokens.push(Token::Number(num));
                 }
+                ';' => tokens.push(Token::SEMICOLON),
                 '(' => tokens.push(Token::LeftParen),
                 ')' => tokens.push(Token::RightParen),
+                'a'..='z' => {
+                    tokens.push(Token::Ident(c.to_string()));
+                }
                 ' ' | '\r' | '\n' | '\t' => {}
                 _ => {
                     let pos = self.s.len() - chars.count() - 1;
@@ -96,7 +91,7 @@ impl Tokenizer {
     }
 
     fn tokenize_error(self, pos: usize) {
-        println!("{}", self.s);
-        println!("{}", " ".repeat(pos) + "^");
+        eprintln!("{}", self.s);
+        eprintln!("{}", " ".repeat(pos) + "^");
     }
 }
