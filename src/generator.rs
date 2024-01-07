@@ -9,7 +9,7 @@ pub fn generate(node: Box<Node>, name: String) {
             generate_push("t0".to_string());
             return;
         }
-        NodeType::LVAR(_) => {
+        NodeType::LVAR(_, _) => {
             generate_lvar(node);
             generate_pop("t0".to_string());
             println!("  lw t1, 0(t0)");
@@ -118,26 +118,12 @@ fn generate_li(register: String, n: i64) {
 
 fn generate_lvar(node: Box<Node>) {
     match node.value {
-        NodeType::LVAR(name) => {
-            println!("  addi t0, fp, {}", lvar_offset(name));
+        NodeType::LVAR(_, offset) => {
+            println!("  addi t0, fp, {}", offset);
             generate_push("t0".to_string());
         }
         _ => {
             eprintln!("代入の左辺値が変数ではありません");
-            process::exit(1);
-        }
-    }
-}
-
-fn lvar_offset(name: String) -> i64 {
-    match name.chars().nth(0).unwrap() {
-        'a'..='z' => {
-            let c = name.chars().nth(0).unwrap();
-            let n = c as i64 - 'a' as i64;
-            -4 * n
-        }
-        _ => {
-            eprintln!("不正な変数名です");
             process::exit(1);
         }
     }

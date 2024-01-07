@@ -76,7 +76,11 @@ impl Tokenizer {
                 '(' => tokens.push(Token::LeftParen),
                 ')' => tokens.push(Token::RightParen),
                 'a'..='z' => {
-                    tokens.push(Token::Ident(c.to_string()));
+                    let mut ident = c.to_string();
+                    while let Some('a'..='z') = chars.peek() {
+                        ident.push(chars.next().unwrap());
+                    }
+                    tokens.push(Token::Ident(ident));
                 }
                 ' ' | '\r' | '\n' | '\t' => {}
                 _ => {

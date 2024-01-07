@@ -14,13 +14,14 @@ pub enum NodeType {
     EQ,
     NEQ,
     ASSIGN,
-    LVAR(String), // local variable
+    LVAR(String, i64), // local variable
 }
 
 #[derive(Clone, Debug)]
 pub struct Node {
     pub value: NodeType,
     pub children: Vec<Box<Node>>,
+    pub offset: i64,
 }
 
 impl Node {
@@ -28,6 +29,7 @@ impl Node {
         Box::new(Node {
             value,
             children: Vec::new(),
+            offset: 0,
         })
     }
 
@@ -35,14 +37,22 @@ impl Node {
         Box::new(Node {
             value: self.value.clone(),
             children: [self.children.clone(), vec![child]].concat(),
+            offset: 0,
         })
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct LVar {
+    pub ident: String,
+    pub offset: i64,
 }
 
 #[derive(Debug)]
 pub struct Parser {
     tokens: Vec<Token>,
     pos: usize,
+    lvars: Vec<LVar>,
 }
 
 impl Parser {
@@ -50,6 +60,7 @@ impl Parser {
         Parser {
             tokens: [tokens.clone(), vec![Token::EOF]].concat(),
             pos: 0,
+            lvars: Vec::new(),
         }
     }
 
@@ -255,16 +266,28 @@ impl Parser {
     }
 
     fn parse_primary(&mut self) -> Box<Node> {
-        match self.token() {
+        match self.token().clone() {
             Token::Number(n) => {
-                let n = Node::new(NodeType::NUM(*n));
+                let n = Node::new(NodeType::NUM(n));
                 self.next();
                 n
             }
             Token::Ident(s) => {
-                let n = Node::new(NodeType::LVAR(s.clone()));
-                self.next();
-                n
+                if let Some(lvar) = self.lvars.iter().find(|lvar| lvar.ident == *s) {
+                    let n = Node::new(NodeType::LVAR(s.to_string(), lvar.offset));
+                    self.next();
+                    n
+                } else {
+                    let lvar = LVar {
+                        ident: s.clone(),
+                        offset: self.lvars.len() as i64 * -8,
+                    };
+                    self.lvars.push(lvar.clone());
+
+                    let n = Node::new(NodeType::LVAR(s.to_string(), lvar.offset));
+                    self.next();
+                    n
+                }
             }
             Token::LeftParen => {
                 self.next();
