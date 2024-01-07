@@ -23,7 +23,7 @@ fn main() {
         eprintln!("式が空です");
         process::exit(1);
     }
-    let parsed = Parser::new(tokens).parse_program();
+    let (parsed, nlvars) = Parser::new(tokens).parse_program();
     // println!("{:?}", parsed);
 
     println!(".globl main");
@@ -34,7 +34,7 @@ fn main() {
     println!("  sw fp, 0(sp)");
     println!("  addi fp, sp, 0");
 
-    for _ in 0..=26 {
+    for _ in 0..=nlvars {
         generate_push("zero".to_string());
     }
 

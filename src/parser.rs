@@ -72,7 +72,7 @@ impl Parser {
         self.pos += 1;
     }
 
-    pub fn parse_program(&mut self) -> Vec<Box<Node>> {
+    pub fn parse_program(&mut self) -> (Vec<Box<Node>>, usize) {
         let mut nodes = Vec::new();
 
         loop {
@@ -96,7 +96,7 @@ impl Parser {
             }
         }
 
-        nodes
+        return (nodes, self.lvars.len());
     }
 
     pub fn parse_expr(&mut self) -> Box<Node> {
