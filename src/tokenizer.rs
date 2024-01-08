@@ -8,6 +8,7 @@ pub enum Token {
     RightParen,
     Ident(String),
     SEMICOLON,
+    RESERVED(String),
     EOF,
 }
 
@@ -80,7 +81,10 @@ impl Tokenizer {
                     while let Some('a'..='z') = chars.peek() {
                         ident.push(chars.next().unwrap());
                     }
-                    tokens.push(Token::Ident(ident));
+                    match ident.as_str() {
+                        "return" => tokens.push(Token::RESERVED("return".to_string())),
+                        _ => tokens.push(Token::Ident(ident)),
+                    }
                 }
                 ' ' | '\r' | '\n' | '\t' => {}
                 _ => {

@@ -98,6 +98,10 @@ pub fn generate(node: Box<Node>, name: String) {
             println!("L_FIN_{}:", name);
             generate_push("t2".to_string());
         }
+        NodeType::RETURN => {
+            generate_pop("a0".to_string());
+            println!("  j L_END");
+        }
         _ => {}
     }
 }

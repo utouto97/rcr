@@ -24,7 +24,7 @@ fn main() {
         process::exit(1);
     }
     let (parsed, nlvars) = Parser::new(tokens).parse_program();
-    // println!("{:?}", parsed);
+    // eprintln!("{:?}", parsed);
 
     println!(".globl main");
     println!("main:");
@@ -43,6 +43,8 @@ fn main() {
     }
     // generate(parsed, "0".to_string());
     generate_pop("a0".to_string());
+
+    println!("L_END:");
 
     // fpを復元
     println!("  lw fp, 0(sp)");

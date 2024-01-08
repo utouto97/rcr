@@ -15,6 +15,7 @@ pub enum NodeType {
     NEQ,
     ASSIGN,
     LVAR(String, i64), // local variable
+    RETURN,
 }
 
 #[derive(Clone, Debug)]
@@ -81,7 +82,7 @@ impl Parser {
                     break;
                 }
                 _ => {
-                    nodes.push(self.parse_expr());
+                    nodes.push(self.parse_stmt());
                     match *self.token() {
                         Token::EOF => {}
                         Token::SEMICOLON => {
@@ -97,6 +98,19 @@ impl Parser {
         }
 
         return (nodes, self.lvars.len());
+    }
+
+    pub fn parse_stmt(&mut self) -> Box<Node> {
+        match self.token() {
+            Token::RESERVED(s) => match s.as_str() {
+                "return" => {
+                    self.next();
+                    Node::new(NodeType::RETURN).add_child(self.parse_expr())
+                }
+                _ => self.parse_expr(),
+            },
+            _ => self.parse_expr(),
+        }
     }
 
     pub fn parse_expr(&mut self) -> Box<Node> {
